@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>DOTONE RIDER — POSTEX V6</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07111b;font-family:Arial,sans-serif}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+#hud{position:fixed;inset:0;color:white;pointer-events:none}
+.top{display:flex;gap:7px;position:absolute;top:12px;left:10px;right:10px;justify-content:space-between}
+.p{background:#07101ddd;border:1px solid #ffffff25;border-radius:12px;padding:8px 10px;font-size:11px;font-weight:800}
+#mission{position:absolute;top:54px;left:50%;transform:translateX(-50%);width:min(90vw,430px);text-align:center;background:#07101ddd;border:1px solid #ffffff22;border-radius:13px;padding:8px;font-size:12px}
+#mission b{color:#ff922b}#msg{margin-top:3px}
+#controls{position:absolute;left:12px;right:12px;bottom:calc(14px + env(safe-area-inset-bottom));display:flex;justify-content:space-between;align-items:end}
+#joy{width:116px;height:116px;border-radius:50%;background:#ffffff12;border:2px solid #ffffff2b;pointer-events:auto;position:relative}
+#stick{width:48px;height:48px;position:absolute;left:32px;top:32px;border-radius:50%;background:#ff8b1a}
+.buttons{display:flex;gap:8px;pointer-events:auto}.btn{width:78px;height:58px;border:0;border-radius:14px;background:#101c28dd;color:white;font-weight:900}
+#boost{background:#ff8b1a;color:#101010}
+#help{position:absolute;right:10px;bottom:145px;background:#07101dbb;border:1px solid #ffffff22;border-radius:10px;padding:7px;font-size:10px;color:#b9c6d2}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="hud">
+ <div class="top">
+  <div class="p">🏆 <span id="coins">0</span></div>
+  <div class="p">LV <span id="lv">1</span> · XP <span id="xp">0</span></div>
+  <div class="p">⚡ <span id="spd">0</span> KM/H</div>
+ </div>
+ <div id="mission"><b>POSTEX DELIVERY</b><div id="msg">Ride to the orange pickup point 📦</div></div>
+ <div id="help">WASD / arrows · touch joystick</div>
+ <div id="controls">
+  <div id="joy"><div id="stick"></div></div>
+  <div class="buttons"><button class="btn" id="brake">BRAKE</button><button class="btn" id="boost">BOOST</button></div>
+ </div>
+</div>
+<script>
+(()=> {
+"use strict";
+const canvas=document.getElementById("c"),ctx=canvas.getContext("2d");
+let W=innerWidth,H=innerHeight,D=Math.min(devicePixelRatio||1.5,2);
+function resize(){W=innerWidth;H=innerHeight;canvas.width=W*D;canvas.height=H*D;canvas.style.width=W+"px";canvas.style.height=H+"px";ctx.setTransform(D,0,0,D,0,0)}
+addEventListener("resize",resize);resize();
+
+const keys={}; let joyX=0,joyY=0,braking=false,boosting=false;
+addEventListener("keydown",e=>{keys[e.key.toLowerCase()]=true});
+addEventListener("keyup",e=>{keys[e.key.toLowerCase()]=false});
+const joy=document.getElementById("joy"),stick=document.getElementById("stick");
+function joyMove(e){const r=joy.getBoundingClientRect(),t=e.touches[0];let x=t.clientX-r.left-r.width/2,y=t.clientY-r.top-r.height/2,l=Math.hypot(x,y),m=43;if(l>m){x=x/l*m;y=y/l*m}joyX=x/m;joyY=y/m;stick.style.transform=`translate(${x}px,${y}px)`}
+joy.addEventListener("touchstart",e=>{e.preventDefault();joyMove(e)},{passive:false});
+joy.addEventListener("touchmove",e=>{e.preventDefault();joyMove(e)},{passive:false});
+joy.addEventListener("touchend",()=>{joyX=joyY=0;stick.style.transform=""});
+for(const id of ["brake","boost"]){
+ const el=document.getElementById(id),v=id==="brake"?"braking":"boosting";
+ el.addEventListener("touchstart",e=>{e.preventDefault();window[v]=true},{passive:false});
+ el.addEventListener("touchend",()=>window[v]=false);
+ el.addEventListener("mousedown",()=>window[v]=true);el.addEventListener("mouseup",()=>window[v]=false);
+}
+
+let coins=0,xp=0,level=1,px=0,pz=0,ang=0,vel=0,phase="pickup",target={x:90,z:-70};
+try{let s=JSON.parse(localStorage.getItem("dotone_v6")||"null");if(s){coins=s.coins||0;xp=s.xp||0;level=s.level||1}}catch(_){}
+function save(){try{localStorage.setItem("dotone_v6",JSON.stringify({coins,xp,level}))}catch(_){}}
+function rnd(a,b){return a+Math.random()*(b-a)}
+function newTarget(){target={x:rnd(-145,145),z:rnd(-145,145)}}
+const cars=[];
+for(let i=0;i<18;i++)cars.push({x:rnd(-170,170),z:rnd(-170,170),a:Math.random()<.5?0:1,v:rnd(8,18)*(Math.random()<.5?-1:1),lane:Math.floor(rnd(-2,3))});
+const rain=Array.from({length:160},()=>({x:Math.random(),y:Math.random(),v:rnd(.6,1.5)}));
+let time=0,last=performance.now();
+
+function worldToScreen(x,z){
+ const dx=x-px,dz=z-pz,c=Math.cos(ang),s=Math.sin(ang);
+ const rx=dx*c-dz*s, rz=dx*s+dz*c;
+ const horizon=H*.39, f=420, sy=horizon+f/(Math.max(8,rz+90))*55;
+ const sx=W/2+rx*(f/(Math.max(8,rz+90)));
+ return {x:sx,y:sy,depth:rz};
+}
+function roadLine(){
+ ctx.save();ctx.translate(W/2,H*.39);
+ for(let i=0;i<16;i++){
+  let y=i*i*3+25;let w=20+i*20;
+  ctx.fillStyle="#d0a44b";ctx.fillRect(-w,y,w*.32,3);ctx.fillRect(w*.68,y,w*.32,3);
+ }
+ ctx.restore();
+}
+function drawSky(){
+ let g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,"#071528");g.addColorStop(.48,"#17324a");g.addColorStop(1,"#101a20");ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ let sun=ctx.createRadialGradient(W*.78,H*.18,5,W*.78,H*.18,120);sun.addColorStop(0,"#fff0bd66");sun.addColorStop(1,"transparent");ctx.fillStyle=sun;ctx.fillRect(0,0,W,H);
+}
+function drawCity(){
+ // ground
+ ctx.fillStyle="#151d21";ctx.fillRect(0,H*.39,W,H*.61);
+ // distant buildings
+ for(let i=0;i<18;i++){
+  let x=(i*83+((px+1000)%83)*.2)%W, h=35+(i%6)*16;
+  ctx.fillStyle=i%2?"#26333b":"#303d45";ctx.fillRect(x,H*.39-h,55,h);
+  for(let yy=H*.39-h+10;yy<H*.39-5;yy+=13){ctx.fillStyle="#e7b55a";for(let xx=x+7;xx<x+50;xx+=13)ctx.fillRect(xx,yy,6,4)}
+ }
+ // perspective road
+ ctx.fillStyle="#242a2d";
+ ctx.beginPath();ctx.moveTo(W*.34,H*.39);ctx.lineTo(W*.66,H*.39);ctx.lineTo(W*.97,H);ctx.lineTo(W*.03,H);ctx.closePath();ctx.fill();
+ ctx.strokeStyle="#51575a";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(W*.34,H*.39);ctx.lineTo(W*.03,H);ctx.moveTo(W*.66,H*.39);ctx.lineTo(W*.97,H);ctx.stroke();
+ roadLine();
+ // side blocks / lamps
+ for(let i=0;i<12;i++){
+  let d=20+i*i*5;
+  for(let side of [-1,1]){
+   let p=worldToScreen(side*(25+i*10),d);
+   if(p.depth>0){let h=Math.max(8,10000/(p.depth+130));ctx.fillStyle="#344149";ctx.fillRect(p.x-h*.35,p.y-h,h*.7,h);ctx.fillStyle="#ffb55a";ctx.fillRect(p.x-2,p.y-h*.7,4,5)}
+  }
+ }
+}
+function drawTarget(){
+ const p=worldToScreen(target.x,target.z);if(p.depth<0)return;
+ const size=Math.max(12,80/(p.depth/30+1));
+ ctx.save();ctx.translate(p.x,p.y);
+ ctx.strokeStyle=phase==="pickup"?"#ff8b1a":"#39e58c";ctx.lineWidth=4;
+ ctx.beginPath();ctx.arc(0,0,size,0,Math.PI*2);ctx.stroke();
+ ctx.fillStyle=ctx.strokeStyle;ctx.font="bold 11px Arial";ctx.textAlign="center";ctx.fillText(phase==="pickup"?"PICKUP":"DROP-OFF",0,-size-7);
+ ctx.restore();
+}
+function drawCars(){
+ for(const car of cars){
+  if(car.a===0)car.x+=car.v*.016;else car.z+=car.v*.016;
+  if(car.x>190)car.x=-190;if(car.x<-190)car.x=190;if(car.z>190)car.z=-190;if(car.z<-190)car.z=190;
+  const p=worldToScreen(car.x,car.z);if(p.depth<0)continue;
+  const sc=Math.max(.25,80/(p.depth+100));let w=24*sc,h=12*sc;
+  ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle="#52616a";ctx.fillRect(-w/2,-h,w,h);ctx.fillStyle="#dcecf5";ctx.fillRect(-w*.3,-h*.75,w*.6,h*.22);ctx.restore();
+ }
+}
+function drawBike(){
+ const x=W/2,y=H*.79,scale=Math.min(W,H)/500;
+ ctx.save();ctx.translate(x,y);ctx.rotate(Math.max(-.18,Math.min(.18,ang*0.2)));
+ // shadow
+ ctx.fillStyle="#0008";ctx.beginPath();ctx.ellipse(0,30,48*scale,10*scale,0,0,Math.PI*2);ctx.fill();
+ // wheels
+ ctx.fillStyle="#080a0c";ctx.beginPath();ctx.ellipse(0,20*scale,11*scale,25*scale,0,0,Math.PI*2);ctx.fill();
+ ctx.beginPath();ctx.ellipse(0,-43*scale,11*scale,25*scale,0,0,Math.PI*2);ctx.fill();
+ // body
+ ctx.fillStyle="#181b1f";ctx.beginPath();ctx.roundRect(-22*scale,-25*scale,44*scale,50*scale,9*scale);ctx.fill();
+ ctx.fillStyle="#ff7f18";ctx.beginPath();ctx.roundRect(-18*scale,-16*scale,36*scale,24*scale,7*scale);ctx.fill();
+ // windshield
+ ctx.fillStyle="#91b6c499";ctx.beginPath();ctx.moveTo(-13*scale,-35*scale);ctx.lineTo(13*scale,-35*scale);ctx.lineTo(10*scale,-62*scale);ctx.lineTo(-10*scale,-62*scale);ctx.closePath();ctx.fill();
+ // delivery box
+ ctx.fillStyle="#ff7f18";ctx.fillRect(-25*scale,-100*scale,50*scale,39*scale);
+ ctx.fillStyle="#111820";ctx.fillRect(-22*scale,-96*scale,44*scale,6*scale);
+ ctx.fillStyle="#111";ctx.font=`bold ${8*scale}px Arial`;ctx.textAlign="center";ctx.fillText("POSTEX",0,-77*scale);
+ // rider
+ ctx.fillStyle="#273746";ctx.beginPath();ctx.arc(0,-116*scale,13*scale,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#101820";ctx.fillRect(-11*scale,-139*scale,22*scale,13*scale);
+ // headlight
+ ctx.fillStyle="#fff5b0";ctx.beginPath();ctx.arc(0,-61*scale,5*scale,0,Math.PI*2);ctx.fill();
+ ctx.restore();
+}
+function update(dt){
+ let throttle=(keys.w||keys.arrowup)?1:0,reverse=(keys.s||keys.arrowdown)?1:0;
+ if(joyY<-0.15)throttle=Math.max(throttle,-joyY);if(joyY>.35)reverse=Math.max(reverse,joyY);
+ let steer=(keys.a||keys.arrowleft)?-1:(keys.d||keys.arrowright)?1:0;if(Math.abs(joyX)>.12)steer=joyX;
+ if(throttle)vel+=34*dt;if(reverse)vel-=24*dt;if(window.braking)vel*=Math.pow(.08,dt);
+ vel*=Math.pow(.72,dt);vel=Math.max(-9,Math.min(window.boosting?32:22,vel));
+ ang+=steer*vel*.018*dt;
+ px+=Math.sin(ang)*vel*dt;pz+=Math.cos(ang)*vel*dt;
+ px=Math.max(-175,Math.min(175,px));pz=Math.max(-175,Math.min(175,pz));
+ if(Math.hypot(target.x-px,target.z-pz)<8){
+  if(phase==="pickup"){coins+=15;xp+=30;phase="delivery";newTarget();document.getElementById("msg").textContent="Package loaded! Ride to the green drop-off 📍"}
+  else{coins+=90;xp+=100;phase="pickup";newTarget();document.getElementById("msg").textContent="New package: ride to the orange pickup point 📦"}
+  if(xp>=100){xp-=100;level++;coins+=50}save();
+ }
+ // simple collision
+ for(const car of cars)if(Math.hypot(car.x-px,car.z-pz)<4){vel*=.25;coins=Math.max(0,coins-2)}
+ document.getElementById("coins").textContent=coins;document.getElementById("xp").textContent=xp;document.getElementById("lv").textContent=level;document.getElementById("spd").textContent=Math.round(Math.abs(vel)*3.2);
+}
+function render(){
+ drawSky();drawCity();drawCars();drawTarget();drawBike();
+ // rain overlay
+ if(time%3<2){ctx.strokeStyle="#7db5d044";ctx.lineWidth=1;for(const r of rain){r.y+=r.v*.018;if(r.y>1)r.y=0;ctx.beginPath();ctx.moveTo(r.x*W,r.y*H);ctx.lineTo(r.x*W-5,r.y*H+12);ctx.stroke()}}
+}
+function loop(now){let dt=Math.min(.035,(now-last)/1000);last=now;time+=dt;update(dt);render();requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
