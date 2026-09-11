@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#050b10">
+<title>DOTONE RIDER 3D — POSTEX CITY • V3</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;overflow:hidden;background:#03080c;color:#eef8fc;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial}
+canvas{display:block;width:100%;height:100%;touch-action:none}button{font:inherit;color:inherit}
+#ui{position:fixed;inset:0;pointer-events:none}.glass{background:rgba(4,12,18,.72);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(15px);box-shadow:0 15px 50px #0008}
+.top{position:absolute;top:max(9px,env(safe-area-inset-top));left:9px;right:9px;display:flex;justify-content:space-between;gap:7px}.brand{padding:9px 11px;border-radius:14px}.brand b{font-size:12px;letter-spacing:2px}.brand small{display:block;font-size:8px;color:#8fa6b2;margin-top:2px;letter-spacing:1px}
+.stats{display:flex;gap:5px}.stat{min-width:61px;padding:7px 8px;border-radius:11px}.stat small{display:block;color:#8ea5b0;font-size:7px}.stat b{font-size:11px}
+.mission{position:absolute;left:9px;top:68px;width:min(355px,calc(100% - 18px));padding:10px;border-radius:14px}.mission b{font-size:11px}.mission small{display:block;color:#91a6b0;font-size:9px;margin-top:3px}.bar{height:4px;background:#17252c;border-radius:9px;overflow:hidden;margin-top:7px}.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#20dfff,#3de993)}
+.actionsTop{position:absolute;right:9px;top:68px;display:flex;gap:4px;pointer-events:auto}.mini{padding:7px 8px;border-radius:9px;border:1px solid #ffffff1a;background:#07131acc;font-size:8px;font-weight:900}
+.controls{position:absolute;left:0;right:0;bottom:max(7px,env(safe-area-inset-bottom));height:150px}.joy{position:absolute;left:18px;bottom:7px;width:112px;height:112px;border-radius:50%;background:#07141dbb;border:1px solid #ffffff25;pointer-events:auto}.knob{position:absolute;width:48px;height:48px;left:31px;top:31px;border-radius:50%;background:#ffffff16;border:1px solid #ffffff22}
+.grid{position:absolute;right:13px;bottom:3px;display:grid;grid-template-columns:69px 69px;gap:7px;pointer-events:auto}.act{height:54px;border-radius:15px;border:1px solid #ffffff18;background:#07131ddd;font-size:8px;font-weight:1000}.boost{grid-column:1/3;background:linear-gradient(135deg,#13c9ed,#685aff)}
+.screen{position:fixed;inset:0;z-index:20;display:grid;place-items:center;background:radial-gradient(circle at 50% 35%,#0d647355,#010508f5 68%)}.card{width:min(430px,calc(100% - 28px));padding:28px 22px;border-radius:28px;text-align:center}.heroBike{font-size:72px}.logo{font-size:29px;font-weight:1000;letter-spacing:3px}.tag{font-size:10px;letter-spacing:3px;color:#29ddff;margin:7px 0 22px}.primary,.secondary{width:100%;padding:14px;margin-top:8px;border-radius:13px;font-weight:900;border:0}.primary{background:linear-gradient(135deg,#15cce9,#7162ff)}.secondary{background:#101d25;border:1px solid #ffffff17}.hint{font-size:9px;color:#8198a4;line-height:1.65;margin-top:13px}
+.modal{position:fixed;z-index:30;left:50%;top:50%;transform:translate(-50%,-50%);width:min(490px,calc(100% - 22px));max-height:80vh;overflow:auto;padding:18px;border-radius:20px;pointer-events:auto}.modal h2{margin:0}.modal p{font-size:10px;color:#90a6b1}.close{position:absolute;right:9px;top:9px;border:0;background:#17252d;border-radius:8px;padding:4px 9px}.row{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:11px;background:#09161e;border:1px solid #ffffff10;margin:6px 0;font-size:10px}.row button{background:#13303a;border:0;border-radius:8px;padding:6px 8px;font-size:8px;font-weight:900}.hidden{display:none!important}.toast{position:fixed;z-index:40;left:50%;bottom:164px;transform:translateX(-50%);padding:9px 13px;border-radius:11px;opacity:0;transition:.2s;font-size:9px;font-weight:900}.toast.show{opacity:1}
+@media(max-width:600px){.stats .stat:nth-child(3){display:none}}
+</style>
+</head>
+<body>
+<div id="world"></div>
+<div id="ui" style="display:none">
+<div class="top"><div class="brand glass"><b>DOTONE RIDER 3D</b><small>POSTEX CITY • DELIVER • RIDE • EARN</small></div>
+<div class="stats"><div class="stat glass"><small>LEVEL</small><b id="lv">1</b></div><div class="stat glass"><small>XP</small><b id="xp">0/500</b></div><div class="stat glass"><small>COINS</small><b id="coin">250</b></div><div class="stat glass"><small>BATTERY</small><b id="bat">100%</b></div></div></div>
+<div class="mission glass"><b id="mn">READY FOR DELIVERY</b><small id="ms">Accept a contract to begin.</small><div class="bar"><i id="xpbar"></i></div></div>
+<div class="actionsTop"><button class="mini" onclick="panel('MISSIONS')">MISSIONS</button><button class="mini" onclick="panel('GARAGE')">GARAGE</button><button class="mini" onclick="panel('RANK')">RANK</button><button class="mini" onclick="panel('WEB3')">WEB3</button></div>
+<div class="controls"><div class="joy" id="joy"><div class="knob" id="knob"></div></div><div class="grid"><button class="act" id="brake">BRAKE</button><button class="act" id="accel">ACCEL</button><button class="act boost" id="boost">⚡ BOOST</button></div></div>
+</div>
+<div class="screen" id="start"><div class="card glass"><div class="heroBike">🏍️</div><div class="logo">DOTONE RIDER</div><div class="tag">POSTEX CITY • 3D DELIVERY</div><button class="primary" id="play">PLAY AS GUEST</button><button class="secondary" id="wallet">CONNECT DOTONE WALLET</button><div class="hint">3D city • traffic • day/night • rain • delivery contracts • upgrades<br>DotOne Mainnet • Chain ID 505 • gameplay works without a wallet</div></div></div>
+<div class="modal glass hidden" id="modal"><button class="close" onclick="closePanel()">×</button><h2 id="pt"></h2><p id="pd"></p><div id="rows"></div></div><div class="toast glass" id="toast"></div>
+
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+import {EffectComposer} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/EffectComposer.js';
+import {RenderPass} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/RenderPass.js';
+import {UnrealBloomPass} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/UnrealBloomPass.js';
+
+const mount=document.querySelector('#world'), scene=new THREE.Scene(), camera=new THREE.PerspectiveCamera(60,innerWidth/innerHeight,.1,1600);
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;mount.appendChild(renderer.domElement);
+const composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.5,.65,.82);composer.addPass(bloom);
+const world=new THREE.Group();scene.add(world);
+const hemi=new THREE.HemisphereLight(0x8ccfff,0x17211a,1.6);scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xffe7bd,2.7);sun.position.set(100,180,80);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+const moon=new THREE.DirectionalLight(0x526eff,0);moon.position.set(-100,130,-70);scene.add(moon);
+const M=(c,r=.7,m=0,e=0)=>{const x=new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});if(e){x.emissive=new THREE.Color(e);x.emissiveIntensity=2.5}return x};
+const box=(g,s,p,m)=>{const o=new THREE.Mesh(new THREE.BoxGeometry(...s),m);o.position.set(...p);o.castShadow=o.receiveShadow=true;g.add(o);return o};
+const cyl=(g,r,h,p,m,n=16)=>{const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,h,n),m);o.position.set(...p);o.castShadow=o.receiveShadow=true;g.add(o);return o};
+
+function city(){
+ box(world,[500,.4,500],[0,-.3,0],M(0x091217),false);
+ for(let i=-12;i<=12;i++){box(world,[8,.06,500],[i*20,0,0],M(0x161d21),false);box(world,[500,.06,8],[0,.01,i*20],M(0x161d21),false)}
+ const buildings=[0x22343b,0x17262e,0x2c3b45,0x1e2b35,0x35434b];
+ for(let i=-12;i<=12;i++)for(let j=-12;j<=12;j++)if((i+j)%2===0){
+   let h=10+((i*31+j*17)%28+28)%28,g=new THREE.Group();g.position.set(i*20+6,0,j*20+6);
+   box(g,[14,h,14],[0,h/2,0],M(buildings[Math.abs(i+j)%buildings.length]));
+   for(let y=3;y<h;y+=3.5)for(let x=-5;x<=5;x+=5){let w=box(g,[1.5,1,.08],[x,y,-7.08],M(0x6ee5ff,.3,.15,0x1b6977));w.material.emissiveIntensity=.9}
+   if((i+j)%5===0){cyl(g,.8,1.4,[0,h+.7,0],M(0x202d34));cyl(g,.12,3,[0,h+2.3,0],M(0x303a3f))}
+   world.add(g);
+ }
+ // street lamps and signs
+ for(let i=-11;i<=11;i+=2)for(let j=-11;j<=11;j+=2){let g=new THREE.Group();g.position.set(i*20+5,0,j*20+5);cyl(g,.1,5,[0,2.5,0],M(0x30383b),8);cyl(g,.28,.15,[0,5.02,0],M(0xffd66a,.15,0,0xffb22e));world.add(g)}
+}
+city();
+
+function makeLabel(text, color="#ffffff", bg="#f45a18"){
+ const c=document.createElement('canvas');c.width=512;c.height=128;const x=c.getContext('2d');
+ x.fillStyle=bg;x.fillRect(0,0,c.width,c.height);x.fillStyle=color;x.font='900 58px Arial';x.textAlign='center';x.textBaseline='middle';x.fillText(text,c.width/2,c.height/2);
+ const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return new THREE.MeshBasicMaterial({map:t,transparent:true});
+}
+function wheel(g,x,z){
+ const w=new THREE.Mesh(new THREE.CylinderGeometry(.48,.48,.20,32),M(0x0b0e10,.25,.8));
+ w.rotation.z=Math.PI/2;w.position.set(x,.48,z);w.castShadow=true;g.add(w);
+ const hub=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.23,20),M(0x777d82,.3,.75));hub.rotation.z=Math.PI/2;hub.position.set(x,.48,z);g.add(hub);
+ const disc=new THREE.Mesh(new THREE.CylinderGeometry(.29,.29,.025,32),M(0x8d969c,.2,.8));disc.rotation.z=Math.PI/2;disc.position.set(x,.48,z+.11);g.add(disc);
+}
+function bike3d(){
+ const g=new THREE.Group();
+ const black=M(0x0b0f12,.24,.72), orange=M(0xf45a18,.25,.38,0x4a1604), orange2=M(0xff6a1f,.22,.35,0x4a1604), dark=M(0x151b1f,.35,.5), white=M(0xf2f3ee,.35,.25), silver=M(0x777f84,.24,.8);
+ // wheels / long wheelbase
+ wheel(g,0,-.95); wheel(g,0,1.12);
+ // low step-through chassis and floorboard
+ box(g,[.62,.24,2.1],[-.05,.58,.05],black);
+ box(g,[.92,.16,1.35],[-.08,.78,-.05],dark);
+ // front leg shield: sloped, wide scooter fairing
+ const shield=new THREE.Mesh(new THREE.BoxGeometry(.58,1.45,.22),orange);
+ shield.position.set(-.34,1.35,-.82);shield.rotation.x=-.15;shield.rotation.z=-.06;shield.castShadow=true;g.add(shield);
+ box(g,[.72,.22,.38],[-.35,1.02,-.82],orange2);
+ // black center column / handle stem
+ box(g,[.20,1.75,.20],[-.30,1.75,-.78],black);
+ // windshield
+ const wind=new THREE.Mesh(new THREE.BoxGeometry(.48,.82,.035),new THREE.MeshPhysicalMaterial({color:0xbfd7df,transparent:true,opacity:.38,roughness:.1,metalness:.1}));
+ wind.position.set(-.31,2.25,-.79);wind.rotation.x=-.16;g.add(wind);
+ // handlebar
+ const bar=cyl(g,.045,.88,[-.31,2.14,-.76],black,12);bar.rotation.z=Math.PI/2;
+ // headlamp
+ const lamp=new THREE.Mesh(new THREE.CylinderGeometry(.20,.20,.10,24),M(0xfff4bd,.1,.1,0xffb42c));lamp.rotation.z=Math.PI/2;lamp.position.set(-.31,1.92,-.91);g.add(lamp);
+ // seat and rear frame
+ box(g,[.62,.20,1.45],[.43,1.03,.48],dark);
+ box(g,[.52,.13,1.18],[.45,1.20,.52],black);
+ // rear suspension
+ for(const x of[-.02,.95]){let sh=cyl(g,.055,.62,[x,.72,1.08],silver,10);sh.rotation.z=.18}
+ // rear mudguard / taillight
+ box(g,[.62,.14,.85],[.83,.95,1.42],black);
+ box(g,[.34,.18,.10],[.83,1.12,1.82],orange2);
+ // POSTEX delivery box: large orange, squared, mounted high
+ box(g,[1.10,.86,1.05],[.48,1.82,1.22],orange2);
+ box(g,[1.03,.08,.96],[.48,2.22,1.22],dark);
+ // mounting rack
+ for(const z of[.90,1.50]) box(g,[.08,.65,.08],[.02,1.53,z],silver);
+ // labels on visible side (z-facing)
+ const label=new THREE.Mesh(new THREE.PlaneGeometry(.78,.20),makeLabel("POSTEX","#ffffff","#f45a18"));
+ label.position.set(.48,1.87,1.755);label.rotation.y=0;g.add(label);
+ // second POSTEX label on the rear-facing panel
+ const rearLabel=new THREE.Mesh(new THREE.PlaneGeometry(.72,.18),makeLabel("POSTEX","#ffffff","#f45a18"));
+ rearLabel.position.set(.48,1.87,.685);rearLabel.rotation.y=Math.PI;g.add(rearLabel);
+ // rider silhouette with orange courier jacket and black helmet
+ const jacket=M(0x11171b,.45,.25), courier=M(0xf45a18,.3,.25);
+ cyl(g,.23,.58,[.12,1.55,.25],courier,16);
+ cyl(g,.21,.24,[.12,1.94,.25],black,16);
+ box(g,[.18,.07,.58],[.48,1.68,.25],jacket);
+ return g;
+}
+const bike=bike3d();world.add(bike);
+// mission beacon
+const beaconGroup=new THREE.Group();world.add(beaconGroup);
+const beaconMat=M(0xff6a1f,.15,.2,0xff3c00);
+const beaconPole=cyl(beaconGroup,.06,4,[0,2,0],beaconMat,10);
+const beaconRing=new THREE.Mesh(new THREE.TorusGeometry(1.15,.07,10,32),beaconMat);beaconRing.rotation.x=Math.PI/2;beaconRing.position.y=3.7;beaconGroup.add(beaconRing);
+const beaconLight=new THREE.PointLight(0xff6a1f,10,22);beaconLight.position.set(0,3.7,0);beaconGroup.add(beaconLight);
+function updateBeacon(){
+ if(!S.mission){beaconGroup.visible=false;return}
+ beaconGroup.visible=true;beaconGroup.position.copy(S.mission.target);beaconRing.rotation.z+=.035;
+}
+
+
+const cars=[];function car(){
+ const g=new THREE.Group();box(g,[1.9,.72,3.7],[0,.62,0],M([0x3e6173,0x8b3c4a,0x596b4d,0x625985][Math.floor(Math.random()*4)]));box(g,[1.5,.48,1.55],[0,1.08,-.15],M(0x17242c));return g}
+for(let i=0;i<30;i++){let c=car();c.position.set((Math.floor(Math.random()*20)-10)*20,0,Math.random()*430-215);c.userData={axis:Math.random()>.5?'x':'z',dir:Math.random()>.5?1:-1,speed:7+Math.random()*14};world.add(c);cars.push(c)}
+
+const rainGeo=new THREE.BufferGeometry(),N=1800,pos=new Float32Array(N*3);for(let i=0;i<N;i++){pos[i*3]=(Math.random()-.5)*450;pos[i*3+1]=Math.random()*120;pos[i*3+2]=(Math.random()-.5)*450}rainGeo.setAttribute('position',new THREE.BufferAttribute(pos,3));const rain=new THREE.Points(rainGeo,new THREE.PointsMaterial({color:0x9bdcff,size:.14,transparent:true,opacity:.6}));scene.add(rain);rain.visible=false;
+
+const S={playing:false,xp:0,level:1,coins:250,reputation:100,deliveries:0,battery:100,boost:0,night:false,weather:'clear',speed:0,angle:0,mission:null,upgrades:{speed:0,handling:0,battery:0,brakes:0}};
+try{Object.assign(S,JSON.parse(localStorage.getItem('dotone_rider_v2')||'{}'))}catch(e){}
+const keys={},T={accel:false,brake:false,joy:0,boost:false};addEventListener('keydown',e=>keys[e.key.toLowerCase()]=true);addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+const contracts=[['FAST DELIVERY','Central Cafe','North Plaza',260,130],['VIP CONTRACT','Luna Restaurant','Central Tower',500,240],['RAIN PRIORITY','Warehouse 07','Riverside',650,300],['EMERGENCY PARCEL','Medical Center','City Hall',580,270],['NIGHT DELIVERY','Metro Hub','Neon District',720,330]];
+function save(){localStorage.setItem('dotone_rider_v2',JSON.stringify(S))}
+function pop(t){let e=document.querySelector('#toast');e.textContent=t;e.classList.add('show');clearTimeout(pop.t);pop.t=setTimeout(()=>e.classList.remove('show'),1800)}
+function weather(){let r=Math.random();S.weather=r<.4?'rain':r<.62?'cloudy':'clear';S.night=Math.random()<.38;rain.visible=S.weather==='rain';sun.intensity=S.night?.3:2.7;moon.intensity=S.night?1.7:0;scene.background.set(S.night?0x020611:S.weather==='rain'?0x182832:0x07151e);scene.fog.color.set(S.night?0x030711:S.weather==='rain'?0x1b2a32:0x07151e);bloom.strength=S.night?.9:.5;pop((S.night?'NIGHT':'DAY')+' • '+S.weather.toUpperCase())}
+function newMission(){let m=contracts[Math.floor(Math.random()*contracts.length)];S.mission={name:m[0],pickup:m[1],dest:m[2],reward:m[3],xp:m[4],t:0,total:115+Math.random()*100,phase:'pickup',target:new THREE.Vector3((Math.random()-.5)*300,0,(Math.random()-.5)*300)};updateUI();pop('NEW CONTRACT • '+m[0])}
+function complete(){let m=S.mission;S.coins+=m.reward;S.xp+=m.xp;S.deliveries++;S.reputation=Math.min(100,S.reputation+.3);while(S.xp>=S.level*500){S.xp-=S.level*500;S.level++;pop('LEVEL UP • '+S.level)}S.mission=null;save();updateUI();panel('DELIVERY COMPLETE');setTimeout(()=>S.playing&&newMission(),900)}
+function updateUI(){document.querySelector('#lv').textContent=S.level;document.querySelector('#xp').textContent=`${Math.floor(S.xp)}/${S.level*500}`;document.querySelector('#coin').textContent=Math.floor(S.coins);document.querySelector('#bat').textContent=Math.floor(S.battery)+'%';document.querySelector('#xpbar').style.width=(S.xp/(S.level*500)*100)+'%';if(S.mission){let m=S.mission;document.querySelector('#mn').textContent=m.name;document.querySelector('#ms').textContent=`${m.phase==='pickup'?'PICK UP':'DELIVER'} • ${m.pickup} → ${m.dest} • ${Math.max(0,Math.ceil(m.total-m.t))}s • +${m.reward}`}else{document.querySelector('#mn').textContent='READY FOR DELIVERY';document.querySelector('#ms').textContent='Accept a contract to begin.'}}
+function addRow(a,b,fn){let r=document.createElement('div');r.className='row';r.innerHTML=`<span>${a}</span><b>${b}</b>`;if(fn)r.onclick=fn;document.querySelector('#rows').appendChild(r)}
+function panel(type){document.querySelector('#modal').classList.remove('hidden');document.querySelector('#pt').textContent=type;document.querySelector('#rows').innerHTML='';
+ if(type==='MISSIONS'){document.querySelector('#pd').textContent='Complete contracts to earn coins and XP.';contracts.forEach(m=>addRow(m[0],`+${m[3]} COINS`,()=>{closePanel();newMission()}))}
+ else if(type==='GARAGE'){document.querySelector('#pd').textContent='Each upgrade changes the motorcycle.';Object.keys(S.upgrades).forEach(k=>addRow(k.toUpperCase(),`LV ${S.upgrades[k]} • 200`,()=>{if(S.coins>=200){S.coins-=200;S.upgrades[k]++;save();updateUI();pop(k.toUpperCase()+' UPGRADED')}}))}
+ else if(type==='RANK'){document.querySelector('#pd').textContent='Global weekly ranking.';['NeonCourier • 128 deliveries','DotOneRider • 117 deliveries','PixelPeyk • 103 deliveries',`YOU • ${S.deliveries} deliveries`].forEach((x,i)=>addRow('#'+(i+1),x))}
+ else if(type==='WEB3'){document.querySelector('#pd').textContent='DotOne integration layer. Gameplay remains playable off-chain.';addRow('Network','DotOne Mainnet');addRow('Chain ID','505');addRow('NFT motorcycles','READY FOR CONTRACT');addRow('On-chain rewards','READY FOR CONTRACT');addRow('Wallet','OPTIONAL') }
+ else {document.querySelector('#pd').textContent='Contract successfully completed.';addRow('Deliveries',S.deliveries);addRow('Reputation',S.reputation.toFixed(0)+'%')}}
+window.panel=panel;window.closePanel=()=>document.querySelector('#modal').classList.add('hidden');
+
+async function connect(){if(!window.ethereum){pop('NO EVM WALLET FOUND');return}try{await ethereum.request({method:'eth_requestAccounts'});try{await ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x1F9'}]})}catch(e){}pop('DOTONE WALLET CONNECTED')}catch(e){pop('WALLET CANCELLED')}}
+document.querySelector('#wallet').onclick=connect;document.querySelector('#play').onclick=()=>{S.playing=true;document.querySelector('#start').classList.add('hidden');document.querySelector('#ui').style.display='block';if(!S.mission)newMission();weather();pop('RIDE OUT')};
+function hold(id,k){let e=document.querySelector(id);e.addEventListener('pointerdown',x=>{x.preventDefault();T[k]=true});['pointerup','pointercancel','pointerleave'].forEach(v=>e.addEventListener(v,()=>T[k]=false))}hold('#accel','accel');hold('#brake','brake');document.querySelector('#boost').addEventListener('pointerdown',()=>T.boost=true);
+const joy=document.querySelector('#joy'),knob=document.querySelector('#knob');joy.addEventListener('pointermove',e=>{if(!e.buttons)return;let r=joy.getBoundingClientRect(),dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),l=Math.min(42,Math.hypot(dx,dy));T.joy=Math.max(-1,Math.min(1,dx/42));knob.style.transform=`translate(${dx/Math.max(1,Math.hypot(dx,dy))*l}px,${dy/Math.max(1,Math.hypot(dx,dy))*l}px)`});['pointerup','pointercancel','pointerleave'].forEach(v=>joy.addEventListener(v,()=>{T.joy=0;knob.style.transform=''}));
+
+function drive(dt){let steer=(keys.a||keys.arrowleft?-1:0)+(keys.d||keys.arrowright?1:0);if(T.joy)steer=T.joy;let ac=keys.w||keys.arrowup||T.accel,br=keys.s||keys.arrowdown||T.brake;if(T.boost&&S.battery>5){S.boost=.8;S.battery-=5;T.boost=false}let max=13+S.upgrades.speed*1.2+(S.boost?8:0);if(ac)S.speed=Math.min(max,S.speed+20*dt);else S.speed=Math.max(0,S.speed-5*dt);if(br)S.speed=Math.max(0,S.speed-24*dt);S.angle+=steer*dt*(1.8+S.speed*.09)*(1+S.upgrades.handling*.1);S.angle*=.985;let v=S.speed*dt;bike.rotation.y=S.angle;bike.position.x+=Math.sin(S.angle)*v;bike.position.z+=Math.cos(S.angle)*v;S.battery=Math.max(0,S.battery-S.speed*.0007*dt);
+ if(S.mission){S.mission.t+=dt;let d=bike.position.distanceTo(S.mission.target);if(d<5){if(S.mission.phase==='pickup'){S.mission.phase='deliver';S.mission.target.set((Math.random()-.5)*300,0,(Math.random()-.5)*300);pop('PACKAGE PICKED • DESTINATION MARKED')}else complete()}if(S.mission&&S.mission.t>S.mission.total){S.mission=null;pop('MISSION FAILED');setTimeout(newMission,500)}}
+}
+function traffic(dt){cars.forEach(c=>{if(c.userData.axis==='x')c.position.x+=c.userData.speed*c.userData.dir*dt;else c.position.z+=c.userData.speed*c.userData.dir*dt;if(Math.abs(c.position.x)>240)c.position.x=-Math.sign(c.position.x)*240;if(Math.abs(c.position.z)>240)c.position.z=-Math.sign(c.position.z)*240;
+ let d=c.position.distanceTo(bike.position);if(d<2.1&&S.speed>5){S.speed*=.25;S.reputation=Math.max(0,S.reputation-.5);pop('⚠ TRAFFIC COLLISION • -REPUTATION')}})}
+function rainUpdate(dt){if(!rain.visible)return;let a=rain.geometry.attributes.position.array;for(let i=1;i<a.length;i+=3){a[i]-=60*dt;if(a[i]<0)a[i]=120}rain.geometry.attributes.position.needsUpdate=true}
+function follow(dt){let desired=new THREE.Vector3(bike.position.x-Math.sin(S.angle)*11,5.6,bike.position.z-Math.cos(S.angle)*11);camera.position.lerp(desired,1-Math.pow(.001,dt));camera.lookAt(bike.position.x,1,bike.position.z)}
+let last=performance.now();function loop(now){let dt=Math.min(.04,(now-last)/1000);last=now;if(S.playing){drive(dt);traffic(dt);rainUpdate(dt);follow(dt);updateBeacon();updateUI()}composer.render();requestAnimationFrame(loop)}weather();requestAnimationFrame(loop);
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight)});
+</script>
+</body>
+</html>
